@@ -24,7 +24,7 @@
 img {
     flex-shrink: 0;
 }
-body p{
+p{
 color: var(--Main-Black, var(--Main-Black, #000));
 text-align: center;
 font-family: Alexandria;
