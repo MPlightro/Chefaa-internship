@@ -1,7 +1,6 @@
 .outer-container {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    grid-template-rows: 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 24px 16px;
     align-items: stretch;
     align-self: stretch;
@@ -49,18 +48,18 @@ h1 {
 
 @media (max-width: 600px) {
     .outer-container {
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
+        flex-wrap: wrap;
         gap: 20px 8px;
-        justify-items: center;
+        justify-content: center;
         align-items: stretch;
         padding: 16px 0;
         min-height: 420px;
     }
     .inner-container {
-        width: 100%;
-        max-width: 160px;
-        margin: 0 auto;
+        width: calc(33.333% - 8px);
+        max-width: none;
+        margin: 0;
+        box-sizing: border-box;
     }
     .img-container {
         width: 64px;
