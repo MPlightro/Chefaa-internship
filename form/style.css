@@ -1,0 +1,10 @@
+```css
+.autofill-mimic {
+    background-color: #fffbe6 !important; /* Chrome autofill yellow */
+    transition: background-color 0s;
+}
+
+#confirm-password.autofilled {
+    background: #fffbe6; /* light yellow */
+}
+```
