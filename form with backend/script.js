@@ -1,5 +1,17 @@
+const form = document.querySelector('form');
+const firebaseConfig = {
+  apiKey: "AIzaSyD4ELmhDrKxLsIPG6adpHjrtFu5Mv9x0as",
+  authDomain: "onthegoheal.firebaseapp.com",
+  databaseURL: "https://onthegoheal-default-rtdb.firebaseio.com",
+  projectId: "onthegoheal",
+  storageBucket: "onthegoheal.appspot.com", // <-- corrected
+  messagingSenderId: "510301999577",
+  appId: "1:510301999577:web:8ab36bfc9c7b0ea6bd49c8",
+  measurementId: "G-3CNCE4EEN6"
+};
+  firebase.initializeApp(firebaseConfig);
+  window.firebaseAppInitialized = true;
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
     if (form) {
         // Remove 'required' attributes and 'type=email' to disable browser validation
         document.getElementById('full-name').removeAttribute('required');
@@ -86,23 +98,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Initialize Firebase if not already initialized
-            if (!window.firebaseAppInitialized) {
-                // TODO: Replace with your Firebase config
-                const firebaseConfig = {
-                    apiKey: "AIzaSyD4ELmhDrKxLsIPG6adpHjrtFu5Mv9x0as",
-                    authDomain: "onthegoheal.firebaseapp.com",
-                    databaseURL: "https://onthegoheal-default-rtdb.firebaseio.com",
-                    projectId: "onthegoheal",
-                    storageBucket: "onthegoheal.firebasestorage.app",
-                    messagingSenderId: "510301999577",
-                    appId: "1:510301999577:web:8ab36bfc9c7b0ea6bd49c8",
-                    measurementId: "G-3CNCE4EEN6"
-                };
-                firebase.initializeApp(firebaseConfig);
-                window.firebaseAppInitialized = true;
-            }
-
             // Generate custom ID: base64("example@example.com#00001")
             function formatEmailForId(email) {
                 // Split by '.', capitalize first letter after each '.', then join without '.'
@@ -116,42 +111,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const usersRef = firebase.database().ref('formApp/users');
-            let userCountSnapshot = await usersRef.once('value');
-            let userCount = userCountSnapshot.numChildren() + 1;
-            let paddedNumber = String(userCount).padStart(5, '0');
-            let originalId = `${email}#${paddedNumber}`;
-            let base64Id = btoa(originalId);
-
-            // Encrypt function using CryptoJS AES
-            function encryptField(value, key) {
-                return CryptoJS.AES.encrypt(value, key).toString();
-            }
-
-            // Encrypt user info fields using base64Id as key
-            const encryptedData = {
-                id: originalId, // store the original (unencrypted) ID as a field
-                fullName: encryptField(fullName, base64Id),
-                email: encryptField(email, base64Id),
-                password: encryptField(password, base64Id),
-                createdAt: encryptField(new Date().toISOString(), base64Id)
-            };
 
             // Show loading before async operation
             showLoading();
 
-            // Push encrypted user info to Realtime Database with base64 ID as key
-            usersRef.child(base64Id).set(encryptedData)
-            .then(() => {
+            try {
+                // 1. Create user with Firebase Auth
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // 2. Send verification email
+                await user.sendEmailVerification();
+
+                // 3. Get user count for ID
+                let userCountSnapshot = await usersRef.once('value');
+                let userCount = userCountSnapshot.numChildren() + 1;
+                let paddedNumber = String(userCount).padStart(5, '0');
+                let originalId = `${email}#${paddedNumber}`;
+                let base64Id = btoa(originalId);
+
+                // Encrypt function using CryptoJS AES
+                function encryptField(value, key) {
+                    return CryptoJS.AES.encrypt(value, key).toString();
+                }
+
+                // Encrypt user info fields using base64Id as key
+                const encryptedData = {
+                    id: originalId, // store the original (unencrypted) ID as a field
+                    fullName: encryptField(fullName, base64Id),
+                    email: encryptField(email, base64Id),
+                    password: encryptField(password, base64Id),
+                    createdAt: encryptField(new Date().toISOString(), base64Id),
+                    verified: encryptField("false", base64Id) // store encrypted string 'false'
+                };
+
+                // 4. Push encrypted user info to Realtime Database with base64 ID as key
+                await usersRef.child(base64Id).set(encryptedData);
+
                 hideLoading();
-                showMessage('success', 'Sign up successful!');
-            })
-            .catch((error) => {
+                showMessage('success', 'Sign up successful! Verification email sent.');
+            } catch (error) {
                 hideLoading();
                 let msg = error.message || 'Sign up failed.';
                 showMessage('error', msg);
-            });
+            }
 
-            console.log({ fullName, email, password, originalId, base64Id, encryptedData });  // Check these values
+            // For debugging
+            // console.log({ fullName, email, password, originalId, base64Id, encryptedData });  // Check these values
         });
     }
 });
