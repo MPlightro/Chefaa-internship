@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal Console</title>
+  <style>
+    body {
+      font-family: "Fira Mono", "Courier New", Courier, monospace;
+      background: linear-gradient(135deg, #232526 0%, #0f2027 100%);
+      color: #0f0;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .page-title {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      background: rgba(20, 20, 20, 0.98);
+      color: #7fff00;
+      text-align: center;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px #0f0, 0 0 2px #fff;
+      z-index: 100;
+      padding: 18px 0 14px 0;
+      border-bottom: 1.5px solid #222;
+      margin: 0;
+      font-family: "Fira Mono", "Courier New", Courier, monospace;
+    }
+    .console {
+      background: rgba(20, 20, 20, 0.98);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border-radius: 12px;
+      padding: 48px 24px 0 24px; /* reduced top padding */
+      height: 96vh;
+      max-width: 800px;
+      margin: 2vh auto 0 auto;
+      overflow-y: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      border: 1.5px solid #222;
+      position: relative;
+      transition: box-shadow 0.2s;
+      padding-top: 48px; /* enough space for fixed header */
+    }
+    .entry {
+      margin-bottom: 18px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #222;
+      transition: background 0.2s;
+    }
+    .entry:last-child {
+      border-bottom: none;
+    }
+    .timestamp {
+      color: #7fff00;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      opacity: 0.7;
+      font-style: italic;
+    }
+    pre {
+      margin: 0;
+      font-size: 1.08rem;
+      line-height: 1.5;
+      word-wrap: break-word;
+      background-color: #181818;
+      padding: 12px 16px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px #0004;
+      color: #baffc9;
+      overflow-x: auto;
+    }
+    /* Blinking cursor effect */
+    .cursor {
+      font-weight: bold;
+      color: #7fff00;
+      animation: blink 1s step-end infinite;
+      font-size: 1.3rem;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      display: block;
+      text-align: left;
+      letter-spacing: 2px;
+      user-select: none;
+    }
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+    /* Scrollbar styling */
+    .console::-webkit-scrollbar {
+      width: 10px;
+      background: #181818;
+    }
+    .console::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 8px;
+    }
+    .console::-webkit-scrollbar-thumb:hover {
+      background: #444;
+    }
+    /* Scroll lock indicator */
+    .scroll-lock-indicator {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      background: #222d;
+      color: #7fff00;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      box-shadow: 0 2px 8px #0006;
+      z-index: 10;
+      display: none;
+      pointer-events: none;
+      user-select: none;
+      font-family: inherit;
+    }
+    .scroll-locked .scroll-lock-indicator {
+      display: block;
+    }
+  </style>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+  <h1 class="page-title">Backend Data Console</h1>
+  <div class="console" id="console">
+    <div id="output"></div>
+    <span class="cursor">|</span>
+    <div class="scroll-lock-indicator" id="scrollLockIndicator">Scroll Lock: OFF</div>
+  </div>
+  <script>
+    // Firebase config (same as script.js)
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4ELmhDrKxLsIPG6adpHjrtFu5Mv9x0as",
+      authDomain: "onthegoheal.firebaseapp.com",
+      databaseURL: "https://onthegoheal-default-rtdb.firebaseio.com",
+      projectId: "onthegoheal",
+      storageBucket: "onthegoheal.firebasestorage.app",
+      messagingSenderId: "510301999577",
+      appId: "1:510301999577:web:8ab36bfc9c7b0ea6bd49c8",
+      measurementId: "G-3CNCE4EEN6"
+    };
+    if (!window.firebaseAppInitialized) {
+      firebase.initializeApp(firebaseConfig);
+      window.firebaseAppInitialized = true;
+    }
+
+    const consoleDiv = document.getElementById('console');
+    const output = document.getElementById('output');
+    const scrollLockIndicator = document.getElementById('scrollLockIndicator');
+
+    let autoScroll = true;
+
+    // Detect user scroll to toggle auto-scroll
+    consoleDiv.addEventListener('scroll', () => {
+      // If user is near the bottom (within 30px), enable auto-scroll
+      const atBottom = consoleDiv.scrollHeight - consoleDiv.scrollTop - consoleDiv.clientHeight < 30;
+      autoScroll = atBottom;
+      if (!autoScroll) {
+        consoleDiv.classList.add('scroll-locked');
+        scrollLockIndicator.textContent = 'Scroll Lock: ON';
+      } else {
+        consoleDiv.classList.remove('scroll-locked');
+        scrollLockIndicator.textContent = 'Scroll Lock: OFF';
+      }
+    });
+
+    // Decrypt function using CryptoJS AES
+    function decryptField(value, key) {
+      try {
+        return CryptoJS.AES.decrypt(value, key).toString(CryptoJS.enc.Utf8);
+      } catch (e) {
+        return value;
+      }
+    }
+
+    // Function to fetch and display data from Firebase
+    async function fetchData() {
+      try {
+        // Read all users from Firebase
+        const snapshot = await firebase.database().ref('formApp/users').once('value');
+        const usersObj = snapshot.val() || {};
+
+        // Convert to array and sort by createdAt descending
+        const data = Object.entries(usersObj)
+          .map(([key, value]) => ({
+            id: key,
+            ...value
+          }))
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Clear the existing content and append the updated data
+        output.innerHTML = '';
+
+        // Pretty print the data
+        // Show newest at the bottom (sort ascending by createdAt)
+        data
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+          .forEach(entry => {
+            const div = document.createElement('div');
+            div.classList.add('entry');
+
+            // Decrypt all fields except id
+            const decrypted = {};
+            Object.entries(entry).forEach(([k, v]) => {
+              if (k === 'id') {
+                decrypted[k] = v;
+              } else {
+                decrypted[k] = decryptField(v, entry.id ? btoa(entry.id) : entry.id);
+              }
+            });
+
+            // Timestamp
+            const timestamp = document.createElement('p');
+            timestamp.classList.add('timestamp');
+            timestamp.style.marginBottom = '2px';
+            timestamp.textContent = `Timestamp: ${decrypted.createdAt ? new Date(decrypted.createdAt).toLocaleString() : ''}`;
+            div.appendChild(timestamp);
+
+            // ID styled like timestamp
+            let displayId = '';
+            if (decrypted.email && decrypted.id) {
+              let sepIdx = decrypted.id.lastIndexOf('*');
+              if (sepIdx === -1) sepIdx = decrypted.id.lastIndexOf('#');
+              let numberPart = sepIdx !== -1 ? decrypted.id.slice(sepIdx + 1) : '';
+              let paddedNumber = numberPart.padStart(5, '0');
+              displayId = `${decrypted.email}#${paddedNumber}`;
+            }
+            if (displayId) {
+              const idElem = document.createElement('p');
+              idElem.classList.add('timestamp');
+              idElem.style.marginTop = '2px';
+              idElem.style.marginBottom = '8px';
+              idElem.textContent = `ID: ${displayId}`;
+              div.appendChild(idElem);
+            }
+
+            // Always include email in the displayed object, and ensure email is above password
+            let displayData;
+            if ('password' in decrypted) {
+              displayData = {};
+              if ('fullName' in decrypted) displayData.fullName = decrypted.fullName;
+              displayData.email = decrypted.email;
+              Object.keys(decrypted).forEach(k => {
+                if (k !== 'fullName' && k !== 'email' && k !== 'password' && k !== 'id' && k !== 'createdAt') displayData[k] = decrypted[k];
+              });
+              displayData.password = decrypted.password;
+            } else {
+              displayData = { ...decrypted, email: decrypted.email };
+            }
+
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(displayData, null, 2);
+            div.appendChild(pre);
+            output.appendChild(div);
+          });
+
+        // Auto-scroll to bottom if enabled
+        if (autoScroll) {
+          setTimeout(() => {
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    // Fetch data on page load
+    fetchData();
+
+    // Set an interval to automatically update every 3 seconds
+    setInterval(fetchData, 3000);
+  </script>
+</body>
+</html>
