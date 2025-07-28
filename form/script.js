@@ -23,7 +23,11 @@ document.querySelector('form').addEventListener('submit', async function(e) {
 
     const result = await response.json();
     if (response.ok) {
-        alert(result.message);
+        localStorage.setItem('userEmail', email);
+        window.location.href = 'todo.html';
+    } else if (response.status === 409) {
+        alert(result.error);
+        window.location.href = 'login.html';
     } else {
         alert(result.error);
     }

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Todos</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+        }
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-top: 40px;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+        #todo-form {
+            display: flex;
+            justify-content: center;
+            margin: 30px auto 20px auto;
+            max-width: 500px;
+            gap: 10px;
+        }
+        #todo-content {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            background: #fff;
+            transition: border 0.2s;
+        }
+        #todo-content:focus {
+            border-color: #4299e1;
+            outline: none;
+        }
+        #todo-form button {
+            padding: 12px 24px;
+            background: #4299e1;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px #4299e122;
+        }
+        #todo-form button:hover {
+            background: #2563eb;
+        }
+        #todo-list {
+            list-style: none;
+            padding: 0;
+            max-width: 500px;
+            margin: 0 auto 30px auto;
+        }
+        #todo-list li {
+            background: #fff;
+            margin-bottom: 16px;
+            padding: 18px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px #cbd5e155;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            font-size: 1.15rem;
+            transition: box-shadow 0.2s, background 0.2s;
+        }
+        #todo-list li:hover {
+            box-shadow: 0 4px 20px #4299e133;
+            background: #f1f5f9;
+        }
+        #todo-list li span {
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+        #todo-list li.completed span {
+            text-decoration: line-through;
+            color: #94a3b8;
+            background: #e2e8f0;
+        }
+        #todo-list .todo-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            margin-top: 4px;
+        }
+        #todo-list button {
+            margin-left: 0;
+            width: 100%;
+            padding: 10px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            background: #e2e8f0;
+            color: #2d3748;
+            transition: background 0.2s, color 0.2s;
+        }
+        #todo-list button:hover {
+            background: #4299e1;
+            color: #fff;
+        }
+        #logout-btn {
+            display: block;
+            margin: 0 auto 40px auto;
+            padding: 12px 32px;
+            background: #f56565;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px #f5656522;
+            transition: background 0.2s;
+        }
+        #logout-btn:hover {
+            background: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Todo List</h1>
+    <form id="todo-form">
+        <input type="text" id="todo-content" placeholder="Add a new todo..." required>
+        <button type="submit">Add</button>
+    </form>
+    <ul id="todo-list"></ul>
+    <button id="logout-btn">Logout</button>
+    <script src="todo.js"></script>
+</body>
+</html> 

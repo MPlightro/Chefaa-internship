@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
       padding: 0;
       min-height: 100vh;
     }
+
     .page-title {
       position: fixed;
       top: 0;
@@ -30,11 +32,13 @@
       margin: 0;
       font-family: "Fira Mono", "Courier New", Courier, monospace;
     }
+
     .console {
       background: rgba(20, 20, 20, 0.98);
       box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
       border-radius: 12px;
-      padding: 48px 24px 0 24px; /* reduced top padding */
+      padding: 48px 24px 0 24px;
+      /* reduced top padding */
       height: 96vh;
       max-width: 800px;
       margin: 2vh auto 0 auto;
@@ -44,17 +48,21 @@
       border: 1.5px solid #222;
       position: relative;
       transition: box-shadow 0.2s;
-      padding-top: 48px; /* enough space for fixed header */
+      padding-top: 48px;
+      /* enough space for fixed header */
     }
+
     .entry {
       margin-bottom: 18px;
       padding-bottom: 8px;
       border-bottom: 1px solid #222;
       transition: background 0.2s;
     }
+
     .entry:last-child {
       border-bottom: none;
     }
+
     .timestamp {
       color: #7fff00;
       font-size: 0.95rem;
@@ -62,6 +70,7 @@
       opacity: 0.7;
       font-style: italic;
     }
+
     pre {
       margin: 0;
       font-size: 1.08rem;
@@ -74,6 +83,7 @@
       color: #baffc9;
       overflow-x: auto;
     }
+
     /* Blinking cursor effect */
     .cursor {
       font-weight: bold;
@@ -87,23 +97,28 @@
       letter-spacing: 2px;
       user-select: none;
     }
+
     @keyframes blink {
       50% {
         opacity: 0;
       }
     }
+
     /* Scrollbar styling */
     .console::-webkit-scrollbar {
       width: 10px;
       background: #181818;
     }
+
     .console::-webkit-scrollbar-thumb {
       background: #333;
       border-radius: 8px;
     }
+
     .console::-webkit-scrollbar-thumb:hover {
       background: #444;
     }
+
     /* Scroll lock indicator */
     .scroll-lock-indicator {
       position: absolute;
@@ -121,15 +136,13 @@
       user-select: none;
       font-family: inherit;
     }
+
     .scroll-locked .scroll-lock-indicator {
       display: block;
     }
   </style>
-  <!-- Firebase App (the core Firebase SDK) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
+
 <body>
   <h1 class="page-title">Backend Data Console</h1>
   <div class="console" id="console">
@@ -138,22 +151,6 @@
     <div class="scroll-lock-indicator" id="scrollLockIndicator">Scroll Lock: OFF</div>
   </div>
   <script>
-    // Firebase config (same as script.js)
-    const firebaseConfig = {
-      apiKey: "AIzaSyD4ELmhDrKxLsIPG6adpHjrtFu5Mv9x0as",
-      authDomain: "onthegoheal.firebaseapp.com",
-      databaseURL: "https://onthegoheal-default-rtdb.firebaseio.com",
-      projectId: "onthegoheal",
-      storageBucket: "onthegoheal.firebasestorage.app",
-      messagingSenderId: "510301999577",
-      appId: "1:510301999577:web:8ab36bfc9c7b0ea6bd49c8",
-      measurementId: "G-3CNCE4EEN6"
-    };
-    if (!window.firebaseAppInitialized) {
-      firebase.initializeApp(firebaseConfig);
-      window.firebaseAppInitialized = true;
-    }
-
     const consoleDiv = document.getElementById('console');
     const output = document.getElementById('output');
     const scrollLockIndicator = document.getElementById('scrollLockIndicator');
@@ -162,7 +159,6 @@
 
     // Detect user scroll to toggle auto-scroll
     consoleDiv.addEventListener('scroll', () => {
-      // If user is near the bottom (within 30px), enable auto-scroll
       const atBottom = consoleDiv.scrollHeight - consoleDiv.scrollTop - consoleDiv.clientHeight < 30;
       autoScroll = atBottom;
       if (!autoScroll) {
@@ -174,95 +170,43 @@
       }
     });
 
-    // Decrypt function using CryptoJS AES
-    function decryptField(value, key) {
-      try {
-        return CryptoJS.AES.decrypt(value, key).toString(CryptoJS.enc.Utf8);
-      } catch (e) {
-        return value;
-      }
-    }
-
-    // Function to fetch and display data from Firebase
+    // Function to fetch and display data from Flask backend
     async function fetchData() {
       try {
-        // Read all users from Firebase
-        const snapshot = await firebase.database().ref('formApp/users').once('value');
-        const usersObj = snapshot.val() || {};
+        // Change the URL if your backend is hosted elsewhere
+        const response = await fetch('http://localhost:5000/users');
+        const users = await response.json();
 
-        // Convert to array and sort by createdAt descending
-        const data = Object.entries(usersObj)
-          .map(([key, value]) => ({
-            id: key,
-            ...value
-          }))
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        // Clear the existing content and append the updated data
         output.innerHTML = '';
 
-        // Pretty print the data
-        // Show newest at the bottom (sort ascending by createdAt)
-        data
-          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-          .forEach(entry => {
-            const div = document.createElement('div');
-            div.classList.add('entry');
+        users.reverse().forEach(entry => {
+          const div = document.createElement('div');
+          div.classList.add('entry');
 
-            // Decrypt all fields except id
-            const decrypted = {};
-            Object.entries(entry).forEach(([k, v]) => {
-              if (k === 'id') {
-                decrypted[k] = v;
-              } else {
-                decrypted[k] = decryptField(v, entry.id ? btoa(entry.id) : entry.id);
-              }
-            });
+          // Timestamp (if you have a created_at column, add it here)
+          // const timestamp = document.createElement('p');
+          // timestamp.classList.add('timestamp');
+          // timestamp.textContent = `Timestamp: ${entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}`;
+          // div.appendChild(timestamp);
 
-            // Timestamp
-            const timestamp = document.createElement('p');
-            timestamp.classList.add('timestamp');
-            timestamp.style.marginBottom = '2px';
-            timestamp.textContent = `Timestamp: ${decrypted.createdAt ? new Date(decrypted.createdAt).toLocaleString() : ''}`;
-            div.appendChild(timestamp);
+          // ID styled like timestamp
+          const idElem = document.createElement('p');
+          idElem.classList.add('timestamp');
+          idElem.textContent = `ID: ${entry.id}`;
+          div.appendChild(idElem);
 
-            // ID styled like timestamp
-            let displayId = '';
-            if (decrypted.email && decrypted.id) {
-              let sepIdx = decrypted.id.lastIndexOf('*');
-              if (sepIdx === -1) sepIdx = decrypted.id.lastIndexOf('#');
-              let numberPart = sepIdx !== -1 ? decrypted.id.slice(sepIdx + 1) : '';
-              let paddedNumber = numberPart.padStart(5, '0');
-              displayId = `${decrypted.email}#${paddedNumber}`;
-            }
-            if (displayId) {
-              const idElem = document.createElement('p');
-              idElem.classList.add('timestamp');
-              idElem.style.marginTop = '2px';
-              idElem.style.marginBottom = '8px';
-              idElem.textContent = `ID: ${displayId}`;
-              div.appendChild(idElem);
-            }
+          // Display user data
+          const displayData = {
+            full_name: entry.full_name,
+            email: entry.email,
+            password: entry.password
+          };
 
-            // Always include email in the displayed object, and ensure email is above password
-            let displayData;
-            if ('password' in decrypted) {
-              displayData = {};
-              if ('fullName' in decrypted) displayData.fullName = decrypted.fullName;
-              displayData.email = decrypted.email;
-              Object.keys(decrypted).forEach(k => {
-                if (k !== 'fullName' && k !== 'email' && k !== 'password' && k !== 'id' && k !== 'createdAt') displayData[k] = decrypted[k];
-              });
-              displayData.password = decrypted.password;
-            } else {
-              displayData = { ...decrypted, email: decrypted.email };
-            }
-
-            const pre = document.createElement('pre');
-            pre.textContent = JSON.stringify(displayData, null, 2);
-            div.appendChild(pre);
-            output.appendChild(div);
-          });
+          const pre = document.createElement('pre');
+          pre.textContent = JSON.stringify(displayData, null, 2);
+          div.appendChild(pre);
+          output.appendChild(div);
+        });
 
         // Auto-scroll to bottom if enabled
         if (autoScroll) {
@@ -282,4 +226,5 @@
     setInterval(fetchData, 3000);
   </script>
 </body>
+
 </html>
